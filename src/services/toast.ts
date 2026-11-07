@@ -32,8 +32,9 @@ export function showToast(
     typeof options === "number" ? { duration: options } : options;
 
   const actions = config.actions || [];
-  const duration = config.duration ?? (actions.length ? 10000 : 4000);
-
+    const duration =
+    config.duration ??
+    (actions.length ? 10000 : Math.min(9000, 3000 + message.length * 45));
   if (activeToast) {
     activeToast.remove();
     activeToast = null;
