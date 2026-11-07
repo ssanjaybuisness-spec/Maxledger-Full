@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capawesome-team/capacitor-file-opener": "^7.0.0",
     "@capgo/capacitor-printer": "^7.0.0",
     "@capacitor-firebase/authentication": "7.5.0",
     "@capacitor/android": "^7.4.3",
