@@ -1,6 +1,7 @@
 
 import { Preferences } from "@capacitor/preferences";
 import type { AppData, Category } from "../types";
+import { showToast } from "./toast";
 
 import {
   auth,
@@ -9,8 +10,7 @@ import {
   createAutomaticCloudBackup
 } from "./firebase";
 
-const LEGACY_STORAGE_KEY = "maxledger_data_v1";
-const PRIMARY_EMAIL = "ssanjaybuisness@gmail.com";
+const CLOUD_SIZE_WARNING_BYTES = 800_000;
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: "income-salary", name: "Salary", type: "income", color: "#34d399", icon: "wallet" },
@@ -110,6 +110,14 @@ function mergeRecords<T extends {
 }
 
 function mergeData(local: AppData, cloud: AppData): AppData {
+  // A restore on one device must win outright; merging would bring
+  // deleted items back from the other device.
+  const localEpoch = local.restoreEpoch ?? 0;
+  const cloudEpoch = cloud.restoreEpoch ?? 0;
+
+  if (cloudEpoch > localEpoch) return migrateData(cloud);
+  if (localEpoch > cloudEpoch) return migrateData(local);
+
   const deletedIds = new Set([
     ...(local.deletedTransactionIds || []),
     ...(cloud.deletedTransactionIds || [])
@@ -177,17 +185,6 @@ async function readLocalData(): Promise<AppData> {
   const accountData = await readFromKey(accountKey);
 
   if (accountData) return accountData;
-
-  const user = auth.currentUser;
-
-  if (user?.email?.toLowerCase() === PRIMARY_EMAIL.toLowerCase()) {
-    const legacyData = await readFromKey(LEGACY_STORAGE_KEY);
-
-    if (legacyData) {
-      await writeLocalData(legacyData);
-      return legacyData;
-    }
-  }
 
   return {
     ...EMPTY_DATA,
@@ -261,7 +258,14 @@ export async function saveData(
   if (!user) return "local-only";
 
   try {
-    await saveCloudData(user.uid, safeData);
+    const cloudBytes = await saveCloudData(user.uid, safeData);
+
+    if (cloudBytes > CLOUD_SIZE_WARNING_BYTES) {
+      showToast(
+        `Your ledger is ${Math.round(cloudBytes / 1024)} KB. Cloud sync stops at about 1000 KB, so export a backup and archive old entries soon.`,
+        9000
+      );
+    }
 
     try {
       await createAutomaticCloudBackup(user.uid, safeData);
