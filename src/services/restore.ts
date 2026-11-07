@@ -46,6 +46,7 @@ export async function importBackup(file: File): Promise<AppData> {
       : [],
     deletedTransactionIds: Array.isArray(data.deletedTransactionIds)
       ? data.deletedTransactionIds as string[]
-      : []
+      : [],
+    restoreEpoch: Date.now()
   };
 }
