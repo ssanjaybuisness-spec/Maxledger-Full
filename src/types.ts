@@ -116,4 +116,6 @@ export interface AppData {
   teamMembers?: TeamMember[];
   cashDistributions?: CashDistribution[];
   deletedTransactionIds?: string[];
+  /** Set when a backup is restored. The side with the newer value wins the sync outright, so deleted items cannot come back from another device. */
+  restoreEpoch?: number;
 }
