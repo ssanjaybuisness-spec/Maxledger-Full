@@ -73,6 +73,8 @@ function removeUndefined(value: unknown): unknown {
   return cleaned;
 }
 
+const FIRESTORE_DOC_LIMIT_BYTES = 1_000_000;
+
 const app = initializeApp(firebaseConfig);
 
 export const auth = Capacitor.isNativePlatform()
@@ -132,11 +134,21 @@ export async function saveCloudData(
   data: unknown
 ) {
   const userRef = doc(db, "users", userId);
+  const cleaned = removeUndefined(data);
+  const bytes = new Blob([JSON.stringify(cleaned)]).size;
+
+  if (bytes > FIRESTORE_DOC_LIMIT_BYTES) {
+    throw new Error(
+      `Your ledger (${Math.round(bytes / 1024)} KB) is over the 1 MB cloud limit. Export a backup and archive old entries.`
+    );
+  }
 
   await setDoc(userRef, {
-    data: removeUndefined(data),
+    data: cleaned,
     updatedAt: serverTimestamp()
   });
+
+  return bytes;
 }
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") {
@@ -287,10 +299,15 @@ export async function restoreCloudBackup(
     );
   }
 
+  const restoredData = {
+    ...(backupData as Record<string, unknown>),
+    restoreEpoch: Date.now()
+  };
+
   await setDoc(userRef, {
-    data: removeUndefined(backupData),
+    data: removeUndefined(restoredData),
     updatedAt: serverTimestamp()
   });
 
-  return backupData;
+  return restoredData;
 }
