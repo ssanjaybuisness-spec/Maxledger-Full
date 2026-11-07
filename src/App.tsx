@@ -316,16 +316,34 @@ export default function App() {
   function deleteTransaction(id: string) {
     if (!window.confirm("Delete this transaction permanently?")) return;
 
-    setData(current => ({
-      ...current,
-      transactions: current.transactions.filter(item => item.id !== id),
-      deletedTransactionIds: [
-        ...new Set([
-          ...(current.deletedTransactionIds || []),
-          id
-        ])
-      ]
-    }));
+    setData(current => {
+      const removed = current.transactions.find(item => item.id === id);
+
+      return {
+        ...current,
+        transactions: current.transactions.filter(item => item.id !== id),
+        pendingPayments:
+          removed?.paymentId && removed.receiptId
+            ? current.pendingPayments.map(payment =>
+                payment.id === removed.paymentId
+                  ? {
+                      ...payment,
+                      receipts: payment.receipts.filter(
+                        receipt => receipt.id !== removed.receiptId
+                      ),
+                      updatedAt: Date.now()
+                    }
+                  : payment
+              )
+            : current.pendingPayments,
+        deletedTransactionIds: [
+          ...new Set([
+            ...(current.deletedTransactionIds || []),
+            id
+          ])
+        ]
+      };
+    });
   }
 
   async function handleRestore(event: ChangeEvent<HTMLInputElement>) {
