@@ -6,8 +6,13 @@ import GoogleAuth from "./components/GoogleAuth";
 import WelcomeScreen from "./components/WelcomeScreen";
 import { Preferences } from "@capacitor/preferences";
 import { auth, onAuthStateChanged } from "./services/firebase";
+import { showToast } from "./services/toast";
 import "./styles.css";
 import "./styles/premium-ui.css";
+// Show themed toasts instead of the plain system alert pop-ups.
+window.alert = (message?: unknown) => {
+  showToast(String(message ?? ""));
+};
 
 function Root() {
   const [user, setUser] = useState<typeof auth.currentUser>(null);
